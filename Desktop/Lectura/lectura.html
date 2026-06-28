@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi Diario de Lecturas</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Georgia', serif;
+    background: #f5f0e8;
+    color: #2c2c2c;
+    min-height: 100vh;
+  }
+
+  header {
+    background: linear-gradient(135deg, #2c3e50 0%, #3d5a73 100%);
+    color: #f5f0e8;
+    padding: 28px 32px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.2);
+  }
+
+  header .icon { font-size: 2.2rem; }
+  header h1 { font-size: 1.8rem; font-weight: normal; letter-spacing: 1px; }
+  header p { font-size: 0.85rem; opacity: 0.7; margin-top: 2px; letter-spacing: 0.5px; }
+
+  nav {
+    display: flex;
+    background: #2c3e50;
+    border-bottom: 3px solid #e8a84e;
+  }
+
+  nav button {
+    flex: 1;
+    padding: 14px;
+    background: none;
+    border: none;
+    color: #aab8c5;
+    font-size: 0.95rem;
+    cursor: pointer;
+    font-family: 'Georgia', serif;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+
+  nav button.active {
+    color: #e8a84e;
+    border-bottom: 3px solid #e8a84e;
+    margin-bottom: -3px;
+    background: rgba(232, 168, 78, 0.08);
+  }
+
+  nav button:hover:not(.active) { color: #f5f0e8; background: rgba(255,255,255,0.05); }
+
+  .tab { display: none; padding: 28px 24px; max-width: 900px; margin: 0 auto; }
+  .tab.active { display: block; }
+
+  /* ── Sección libros ── */
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .section-header h2 {
+    font-size: 1.3rem;
+    color: #2c3e50;
+    font-weight: normal;
+    border-left: 4px solid #e8a84e;
+    padding-left: 12px;
+  }
+
+  .count-badge {
+    background: #e8a84e;
+    color: #2c2c2c;
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-size: 0.8rem;
+    font-weight: bold;
+  }
+
+  .btn-add {
+    background: #2c3e50;
+    color: #f5f0e8;
+    border: none;
+    padding: 9px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-family: 'Georgia', serif;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s;
+  }
+
+  .btn-add:hover { background: #3d5a73; }
+
+  /* ── Card libro ── */
+  .books-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 18px;
+  }
+
+  .book-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-left: 4px solid #e8a84e;
+    position: relative;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+
+  .book-card:hover { transform: translateY(-2px); box-shadow: 0 5px 16px rgba(0,0,0,0.12); }
+
+  .book-card.reading { border-left-color: #4a90d9; }
+
+  .book-cover-emoji {
+    font-size: 2.4rem;
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  .book-title {
+    font-size: 1.05rem;
+    font-weight: bold;
+    color: #1a1a1a;
+    margin-bottom: 4px;
+    line-height: 1.3;
+  }
+
+  .book-author {
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 10px;
+    font-style: italic;
+  }
+
+  .stars {
+    display: flex;
+    gap: 3px;
+    margin-bottom: 10px;
+  }
+
+  .star {
+    font-size: 1.3rem;
+    cursor: pointer;
+    transition: transform 0.1s;
+    color: #ddd;
+  }
+
+  .star.filled { color: #e8a84e; }
+  .star:hover { transform: scale(1.2); }
+
+  .book-note {
+    font-size: 0.82rem;
+    color: #555;
+    font-style: italic;
+    line-height: 1.5;
+    border-top: 1px solid #f0e8d8;
+    padding-top: 8px;
+    margin-top: 4px;
+  }
+
+  .book-actions {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .book-card:hover .book-actions { opacity: 1; }
+
+  .btn-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background 0.15s;
+  }
+
+  .btn-icon:hover { background: #f0e8d8; }
+
+  .reading-progress {
+    margin-top: 10px;
+    font-size: 0.78rem;
+    color: #4a90d9;
+    font-weight: bold;
+    letter-spacing: 0.3px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 50px 20px;
+    color: #999;
+  }
+
+  .empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+  .empty-state p { font-size: 0.95rem; }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: #fff;
+    border-radius: 12px;
+    padding: 28px;
+    width: 100%;
+    max-width: 440px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  }
+
+  .modal h3 {
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+    color: #2c3e50;
+    border-bottom: 2px solid #e8a84e;
+    padding-bottom: 10px;
+  }
+
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 0.85rem; color: #555; margin-bottom: 5px; }
+  .form-group input, .form-group textarea, .form-group select {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1.5px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-family: 'Georgia', serif;
+    transition: border-color 0.2s;
+    background: #fafafa;
+  }
+
+  .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+    outline: none;
+    border-color: #e8a84e;
+    background: #fff;
+  }
+
+  .form-group textarea { resize: vertical; min-height: 80px; }
+
+  .star-picker { display: flex; gap: 6px; }
+  .star-picker .star { font-size: 1.6rem; }
+
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+  .btn-cancel {
+    background: #eee;
+    border: none;
+    padding: 9px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'Georgia', serif;
+    transition: background 0.2s;
+  }
+
+  .btn-cancel:hover { background: #ddd; }
+
+  .btn-save {
+    background: #2c3e50;
+    color: #fff;
+    border: none;
+    padding: 9px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'Georgia', serif;
+    transition: background 0.2s;
+  }
+
+  .btn-save:hover { background: #3d5a73; }
+
+  /* ── Calendario / Racha ── */
+  .streak-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: #2c3e50;
+    color: #f5f0e8;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+
+  .streak-number { font-size: 3rem; font-weight: bold; color: #e8a84e; line-height: 1; }
+  .streak-label { font-size: 0.85rem; opacity: 0.8; margin-top: 2px; }
+  .streak-flame { font-size: 2.5rem; }
+
+  .streak-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+  }
+
+  .stat-number { font-size: 1.8rem; font-weight: bold; color: #2c3e50; }
+  .stat-label { font-size: 0.78rem; color: #888; margin-top: 3px; }
+
+  .calendar-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .calendar-nav h3 { font-size: 1.1rem; color: #2c3e50; font-weight: normal; }
+
+  .btn-nav {
+    background: #2c3e50;
+    color: #fff;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+  }
+
+  .btn-nav:hover { background: #3d5a73; }
+
+  .calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+
+  .calendar-weekdays span {
+    text-align: center;
+    font-size: 0.75rem;
+    color: #999;
+    font-weight: bold;
+    padding: 4px 0;
+  }
+
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+
+  .cal-day {
+    aspect-ratio: 1;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.82rem;
+    cursor: pointer;
+    background: #f0ece4;
+    color: #555;
+    transition: all 0.15s;
+    position: relative;
+    border: 2px solid transparent;
+    user-select: none;
+  }
+
+  .cal-day:hover:not(.empty) { border-color: #e8a84e; }
+
+  .cal-day.empty { background: transparent; cursor: default; }
+
+  .cal-day.read {
+    background: #2c3e50;
+    color: #e8a84e;
+    font-weight: bold;
+  }
+
+  .cal-day.read::after {
+    content: '📖';
+    position: absolute;
+    top: -6px;
+    right: -4px;
+    font-size: 0.65rem;
+  }
+
+  .cal-day.today {
+    border-color: #e8a84e;
+    font-weight: bold;
+  }
+
+  .cal-day.today.read { border-color: #fff; }
+
+  .cal-day.future { opacity: 0.35; cursor: default; }
+
+  .calendar-legend {
+    display: flex;
+    gap: 16px;
+    margin-top: 14px;
+    font-size: 0.8rem;
+    color: #666;
+  }
+
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot {
+    width: 14px; height: 14px;
+    border-radius: 4px;
+  }
+
+  .legend-dot.read { background: #2c3e50; }
+  .legend-dot.today { background: #f0ece4; border: 2px solid #e8a84e; }
+  .legend-dot.normal { background: #f0ece4; }
+
+  .btn-mark-today {
+    margin-top: 18px;
+    width: 100%;
+    padding: 13px;
+    background: linear-gradient(135deg, #e8a84e, #d4943a);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-family: 'Georgia', serif;
+    cursor: pointer;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    transition: opacity 0.2s;
+    box-shadow: 0 3px 10px rgba(232,168,78,0.35);
+  }
+
+  .btn-mark-today:hover { opacity: 0.9; }
+  .btn-mark-today.marked { background: linear-gradient(135deg, #4a90d9, #357abd); }
+
+  @media (max-width: 500px) {
+    header h1 { font-size: 1.3rem; }
+    .tab { padding: 20px 14px; }
+    .streak-stats { grid-template-columns: repeat(3, 1fr); }
+    .cal-day { font-size: 0.72rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="icon">📚</span>
+  <div>
+    <h1>Mi Diario de Lecturas</h1>
+    <p>Registra, valora y mantén tu racha lectora</p>
+  </div>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('leyendo')">📖 Leyendo</button>
+  <button onclick="showTab('leidos')">✅ Leídos</button>
+  <button onclick="showTab('reto')">🔥 Reto Lector</button>
+</nav>
+
+<!-- TAB: LEYENDO -->
+<div id="tab-leyendo" class="tab active">
+  <div class="section-header">
+    <h2>Leyendo ahora <span class="count-badge" id="count-leyendo">0</span></h2>
+    <button class="btn-add" onclick="openModal('leyendo')">+ Añadir libro</button>
+  </div>
+  <div class="books-grid" id="grid-leyendo"></div>
+  <div id="empty-leyendo" class="empty-state">
+    <div class="empty-icon">📖</div>
+    <p>No estás leyendo ningún libro.<br>¡Empieza uno nuevo!</p>
+  </div>
+</div>
+
+<!-- TAB: LEÍDOS -->
+<div id="tab-leidos" class="tab">
+  <div class="section-header">
+    <h2>Libros leídos <span class="count-badge" id="count-leidos">0</span></h2>
+    <button class="btn-add" onclick="openModal('leido')">+ Añadir libro</button>
+  </div>
+  <div class="books-grid" id="grid-leidos"></div>
+  <div id="empty-leidos" class="empty-state">
+    <div class="empty-icon">🏆</div>
+    <p>Aún no has marcado libros como leídos.<br>¡Sigue leyendo!</p>
+  </div>
+</div>
+
+<!-- TAB: RETO -->
+<div id="tab-reto" class="tab">
+  <div class="streak-header">
+    <span class="streak-flame">🔥</span>
+    <div>
+      <div class="streak-number" id="streak-count">0</div>
+      <div class="streak-label">días de racha actual</div>
+    </div>
+    <div style="margin-left:auto; text-align:right;">
+      <div style="font-size:1.1rem; color:#e8a84e;" id="best-streak-display">Mejor racha: 0 días</div>
+      <div style="font-size:0.8rem; opacity:0.7; margin-top:4px;">¡Sigue así!</div>
+    </div>
+  </div>
+
+  <div class="streak-stats">
+    <div class="stat-card">
+      <div class="stat-number" id="stat-total">0</div>
+      <div class="stat-label">Días leídos</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" id="stat-month">0</div>
+      <div class="stat-label">Este mes</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" id="stat-books">0</div>
+      <div class="stat-label">Libros totales</div>
+    </div>
+  </div>
+
+  <div style="background:#fff; border-radius:12px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.07);">
+    <div class="calendar-nav">
+      <button class="btn-nav" onclick="changeMonth(-1)">◀</button>
+      <h3 id="calendar-month-label"></h3>
+      <button class="btn-nav" onclick="changeMonth(1)">▶</button>
+    </div>
+    <div class="calendar-weekdays">
+      <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
+    </div>
+    <div class="calendar-grid" id="calendar-grid"></div>
+    <div class="calendar-legend">
+      <div class="legend-item"><div class="legend-dot read"></div> Día leído</div>
+      <div class="legend-item"><div class="legend-dot today"></div> Hoy</div>
+      <div class="legend-item"><div class="legend-dot normal"></div> Sin leer</div>
+    </div>
+    <button class="btn-mark-today" id="btn-mark-today" onclick="toggleToday()">
+      📖 Marcar hoy como leído
+    </button>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <h3 id="modal-title">Añadir libro</h3>
+    <div class="form-group">
+      <label>Título *</label>
+      <input type="text" id="input-title" placeholder="Título del libro">
+    </div>
+    <div class="form-group">
+      <label>Autor</label>
+      <input type="text" id="input-author" placeholder="Nombre del autor">
+    </div>
+    <div class="form-group">
+      <label>Valoración</label>
+      <div class="star-picker" id="star-picker">
+        <span class="star" data-v="1" onclick="setRating(1)">★</span>
+        <span class="star" data-v="2" onclick="setRating(2)">★</span>
+        <span class="star" data-v="3" onclick="setRating(3)">★</span>
+        <span class="star" data-v="4" onclick="setRating(4)">★</span>
+        <span class="star" data-v="5" onclick="setRating(5)">★</span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Nota personal</label>
+      <textarea id="input-note" placeholder="¿Qué te ha parecido? Una frase, una reflexión..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-save" onclick="saveBook()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Estado ────────────────────────────────────────────────────────
+  let data = JSON.parse(localStorage.getItem('lecturas') || '{"books":[],"readDays":[]}');
+
+  let currentModal = null; // 'leyendo' | 'leido'
+  let editingId = null;
+  let currentRating = 0;
+  let calendarDate = new Date();
+
+  const EMOJIS = ['📘','📗','📙','📕','📓','📔','📒','📖'];
+
+  function save() {
+    localStorage.setItem('lecturas', JSON.stringify(data));
+  }
+
+  // ── Tabs ───────────────────────────────────────────────────────────
+  function showTab(name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    event.target.classList.add('active');
+    if (name === 'reto') renderCalendar();
+  }
+
+  // ── Render libros ──────────────────────────────────────────────────
+  function renderBooks() {
+    const leyendo = data.books.filter(b => b.status === 'leyendo');
+    const leidos  = data.books.filter(b => b.status === 'leido');
+
+    document.getElementById('count-leyendo').textContent = leyendo.length;
+    document.getElementById('count-leidos').textContent  = leidos.length;
+
+    renderGrid('grid-leyendo', 'empty-leyendo', leyendo, true);
+    renderGrid('grid-leidos',  'empty-leidos',  leidos,  false);
+
+    document.getElementById('stat-books').textContent = data.books.length;
+  }
+
+  function renderGrid(gridId, emptyId, books, isReading) {
+    const grid  = document.getElementById(gridId);
+    const empty = document.getElementById(emptyId);
+    grid.innerHTML = '';
+
+    if (!books.length) {
+      grid.style.display = 'none';
+      empty.style.display = 'block';
+      return;
+    }
+
+    grid.style.display = 'grid';
+    empty.style.display = 'none';
+
+    books.forEach(b => {
+      const stars = '★'.repeat(b.rating) + '☆'.repeat(5 - b.rating);
+      const starsHTML = [...stars].map((s,i) =>
+        `<span class="star ${i < b.rating ? 'filled' : ''}">${s}</span>`
+      ).join('');
+
+      const card = document.createElement('div');
+      card.className = 'book-card' + (isReading ? ' reading' : '');
+      card.innerHTML = `
+        <span class="book-cover-emoji">${b.emoji}</span>
+        <div class="book-title">${escHtml(b.title)}</div>
+        <div class="book-author">${escHtml(b.author || 'Autor desconocido')}</div>
+        <div class="stars">${starsHTML}</div>
+        ${b.note ? `<div class="book-note">${escHtml(b.note)}</div>` : ''}
+        ${isReading ? `<div class="reading-progress">📖 Leyendo...</div>` : ''}
+        <div class="book-actions">
+          ${isReading ? `<button class="btn-icon" title="Marcar como leído" onclick="markAsRead('${b.id}')">✅</button>` : ''}
+          <button class="btn-icon" title="Editar" onclick="openEdit('${b.id}')">✏️</button>
+          <button class="btn-icon" title="Eliminar" onclick="deleteBook('${b.id}')">🗑️</button>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  function escHtml(s) {
+    return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── CRUD ───────────────────────────────────────────────────────────
+  function openModal(type) {
+    currentModal = type;
+    editingId = null;
+    currentRating = 0;
+    document.getElementById('modal-title').textContent = type === 'leyendo' ? 'Añadir libro (leyendo)' : 'Añadir libro leído';
+    document.getElementById('input-title').value = '';
+    document.getElementById('input-author').value = '';
+    document.getElementById('input-note').value = '';
+    updateStarPicker(0);
+    document.getElementById('modal-overlay').classList.add('open');
+    document.getElementById('input-title').focus();
+  }
+
+  function openEdit(id) {
+    const b = data.books.find(x => x.id === id);
+    if (!b) return;
+    currentModal = b.status;
+    editingId = id;
+    currentRating = b.rating;
+    document.getElementById('modal-title').textContent = 'Editar libro';
+    document.getElementById('input-title').value  = b.title;
+    document.getElementById('input-author').value = b.author;
+    document.getElementById('input-note').value   = b.note || '';
+    updateStarPicker(b.rating);
+    document.getElementById('modal-overlay').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('open');
+  }
+
+  function closeModalOutside(e) {
+    if (e.target === document.getElementById('modal-overlay')) closeModal();
+  }
+
+  function setRating(v) {
+    currentRating = v;
+    updateStarPicker(v);
+  }
+
+  function updateStarPicker(v) {
+    document.querySelectorAll('#star-picker .star').forEach((s, i) => {
+      s.classList.toggle('filled', i < v);
+    });
+  }
+
+  function saveBook() {
+    const title = document.getElementById('input-title').value.trim();
+    if (!title) { document.getElementById('input-title').focus(); return; }
+
+    const author = document.getElementById('input-author').value.trim();
+    const note   = document.getElementById('input-note').value.trim();
+
+    if (editingId) {
+      const b = data.books.find(x => x.id === editingId);
+      if (b) { b.title = title; b.author = author; b.note = note; b.rating = currentRating; }
+    } else {
+      data.books.push({
+        id: Date.now().toString(),
+        title, author, note,
+        rating: currentRating,
+        status: currentModal,
+        emoji: EMOJIS[Math.floor(Math.random() * EMOJIS.length)],
+        added: new Date().toISOString()
+      });
+    }
+
+    save();
+    closeModal();
+    renderBooks();
+  }
+
+  function deleteBook(id) {
+    if (!confirm('¿Eliminar este libro?')) return;
+    data.books = data.books.filter(b => b.id !== id);
+    save();
+    renderBooks();
+  }
+
+  function markAsRead(id) {
+    const b = data.books.find(x => x.id === id);
+    if (b) { b.status = 'leido'; save(); renderBooks(); }
+  }
+
+  // ── Calendario ─────────────────────────────────────────────────────
+  const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                     'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+  function dateKey(d) {
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+
+  function todayKey() { return dateKey(new Date()); }
+
+  function changeMonth(delta) {
+    calendarDate.setMonth(calendarDate.getMonth() + delta);
+    renderCalendar();
+  }
+
+  function renderCalendar() {
+    const now   = new Date();
+    const year  = calendarDate.getFullYear();
+    const month = calendarDate.getMonth();
+
+    document.getElementById('calendar-month-label').textContent = MONTHS_ES[month] + ' ' + year;
+
+    const firstDay = new Date(year, month, 1);
+    const lastDay  = new Date(year, month + 1, 0);
+
+    // Lunes=0 ... Domingo=6
+    let startDow = (firstDay.getDay() + 6) % 7;
+
+    const grid = document.getElementById('calendar-grid');
+    grid.innerHTML = '';
+
+    // celdas vacías al inicio
+    for (let i = 0; i < startDow; i++) {
+      const el = document.createElement('div');
+      el.className = 'cal-day empty';
+      grid.appendChild(el);
+    }
+
+    const tk = todayKey();
+
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+      const dt  = new Date(year, month, d);
+      const key = dateKey(dt);
+      const isRead   = data.readDays.includes(key);
+      const isToday  = key === tk;
+      const isFuture = dt > now;
+
+      const el = document.createElement('div');
+      el.className = 'cal-day' +
+        (isRead   ? ' read'   : '') +
+        (isToday  ? ' today'  : '') +
+        (isFuture ? ' future' : '');
+      el.textContent = d;
+
+      if (!isFuture) {
+        el.title = key;
+        el.onclick = () => toggleDay(key);
+      }
+
+      grid.appendChild(el);
+    }
+
+    updateStreakStats();
+    updateTodayButton();
+  }
+
+  function toggleDay(key) {
+    const tk = todayKey();
+    const dt = new Date(key + 'T12:00:00');
+    if (dt > new Date()) return;
+
+    const idx = data.readDays.indexOf(key);
+    if (idx === -1) data.readDays.push(key);
+    else            data.readDays.splice(idx, 1);
+
+    save();
+    renderCalendar();
+  }
+
+  function toggleToday() {
+    toggleDay(todayKey());
+  }
+
+  function updateTodayButton() {
+    const btn = document.getElementById('btn-mark-today');
+    if (data.readDays.includes(todayKey())) {
+      btn.textContent = '✅ ¡Hoy ya has leído!';
+      btn.classList.add('marked');
+    } else {
+      btn.textContent = '📖 Marcar hoy como leído';
+      btn.classList.remove('marked');
+    }
+  }
+
+  function updateStreakStats() {
+    const sorted = [...data.readDays].sort();
+    const now = new Date();
+
+    // racha actual (hacia atrás desde hoy)
+    let streak = 0;
+    let check  = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    while (true) {
+      if (data.readDays.includes(dateKey(check))) {
+        streak++;
+        check.setDate(check.getDate() - 1);
+      } else break;
+    }
+
+    // mejor racha
+    let best = 0, run = 0, prev = null;
+    for (const k of sorted) {
+      const d = new Date(k + 'T12:00:00');
+      if (prev) {
+        const diff = (d - prev) / 86400000;
+        run = diff === 1 ? run + 1 : 1;
+      } else run = 1;
+      if (run > best) best = run;
+      prev = d;
+    }
+
+    // días este mes
+    const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    const monthDays = data.readDays.filter(k => k.startsWith(thisMonth)).length;
+
+    document.getElementById('streak-count').textContent     = streak;
+    document.getElementById('best-streak-display').textContent = `Mejor racha: ${best} día${best !== 1 ? 's' : ''}`;
+    document.getElementById('stat-total').textContent  = data.readDays.length;
+    document.getElementById('stat-month').textContent  = monthDays;
+  }
+
+  // ── Init ───────────────────────────────────────────────────────────
+  renderBooks();
+  renderCalendar();
+</script>
+</body>
+</html>
